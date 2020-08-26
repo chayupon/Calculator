@@ -40,7 +40,7 @@ switch cons {
 		fmt.Println(operate.Add(input1,input2,cons))
 
 	default:
-		fmt.Println("Invalid operation selected. Please try again!")
+		fmt.Println("Invalid operation selected!")
 		goto getCons
 	}
 	
