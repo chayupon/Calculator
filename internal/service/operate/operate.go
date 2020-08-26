@@ -1,6 +1,7 @@
 package operate
 
-func cal(input1 int, input2 int, cons string) (int, string) {
+//Add input
+func Add(input1 int, input2 int, cons string) (int, string) {
 
 	if cons == "+" {
 
@@ -23,4 +24,5 @@ func cal(input1 int, input2 int, cons string) (int, string) {
 	result := input1 - input2
 
 	return result, ""
+	
 }
