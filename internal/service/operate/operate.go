@@ -1,7 +1,7 @@
 package operate
 
 //Add input
-func Add(input1 int, input2 int, cons string) (int, string) {
+func Add(input1 float64, input2 float64, cons string) (float64, string) {
 
 	if cons == "+" {
 
