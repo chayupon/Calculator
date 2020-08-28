@@ -1,16 +1,13 @@
-package main
+package calculate
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/chayupon/Calculator/internal/operate"
-	_ "github.com/lib/pq"
 
-	"encoding/json"
 	"net/http"
-
-	"github.com/gorilla/mux"
 	//	"strconv"
 )
 
@@ -34,8 +31,8 @@ type outputError struct {
 	InputAll         string `json:"inputall"`
 }
 
-//var cals []Cal
-func calculate(w http.ResponseWriter, r *http.Request) {
+//Calculate cal
+func Calculate(w http.ResponseWriter, r *http.Request) {
 
 	var cal Cal
 	var out Output
@@ -55,38 +52,31 @@ func calculate(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(&outerror)
 		return
-
+		//response
 	}
 	fmt.Println("Input2", cal.Input2)
 	fmt.Println("Input1", cal.Input1)
 	result, err := operate.Add(cal.Input1, cal.Input2, cal.Operation)
 	fmt.Println("Result :", result, err)
 
-	if err == "error" {
-		outerror.Errordescription = err
+	if err != nil {
+		outerror.Errordescription = err.Error()
 		fmt.Println(outerror.Errordescription)
 		//เครื่องหมาย กับ status
 		s := fmt.Sprintf("%f %s %f = %f", cal.Input1, cal.Operation, cal.Input2, cal.Result)
 		fmt.Println("ResultAll :", s)
 		outerror.InputAll = s
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(&outerror)
 		return
-	}
+	} //response
 
 	out.Result = result
 	currentTime := time.Now()
 	out.Time = currentTime.Format(time.RFC3339Nano)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(&out)
-
-}
-
-func main() {
-	//fmt.Println("TTTTTT")
-	router := mux.NewRouter()
-	router.HandleFunc("/calculator", calculate).Methods("POST")
-
-	fmt.Println(http.ListenAndServe(":8082", router))
-
-}
+	//response
+} //response
