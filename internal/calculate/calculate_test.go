@@ -7,12 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/lib/pq"
+	//	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 )
 
-func CheckEror(t *testing.T) {
-
+func Test_OutputError(t *testing.T) {
 	response := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/calculator", strings.NewReader(`{  "input1" :0.22, "input2"  :0,"operation" :"/"}`))
 
@@ -27,7 +26,7 @@ func CheckEror(t *testing.T) {
 
 }
 
-func CheckStructEror(t *testing.T) {
+func Test_StructEror(t *testing.T) {
 
 	response := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/calculator", strings.NewReader(`{  "input1" :"2", "input2"  :2,"operation" :"+"}`))
@@ -43,8 +42,7 @@ func CheckStructEror(t *testing.T) {
 	assert.Equal(t, "0.000000 + 2.000000 = 0.000000", outerr.InputAll)
 
 }
-
-func CheckPass(t *testing.T) {
+func Test_Pass(t *testing.T) {
 
 	response := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/calculator", strings.NewReader(`{  "input1" :2, "input2"  :2,"operation" :"+"}`))
@@ -60,4 +58,3 @@ func CheckPass(t *testing.T) {
 	assert.Equalf(t, 4.00, showout.Result, "result 4")
 
 }
-
