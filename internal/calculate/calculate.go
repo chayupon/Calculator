@@ -1,15 +1,24 @@
 package calculate
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/chayupon/Calculator/internal/operate"
 
 	"net/http"
-	//	"strconv"
+
+	"github.com/gorilla/mux"
 )
+
+//Query input to db
+type Query struct {
+	Router *mux.Router
+	DB     *sql.DB
+}
 
 //Cal calculate
 type Cal struct {
@@ -30,6 +39,53 @@ type outputError struct {
 	Errordescription string `json:"errordescription"`
 	InputAll         string `json:"inputall"`
 }
+
+//History in db
+type history struct {
+	Sequence      int    `json:"sequence"`
+	Time          string `json:"time"`
+	InputAll      string `json:"input_all"`
+	ErrorDescripe string `json:"error_descripe"`
+}
+
+//Calculate select
+/*
+func (q Query) createResult(w http.ResponseWriter, r *http.Request) {
+	var sequence int
+	var time string
+	var inputAll string
+	var errorDescripe string
+
+	sqlStr := `SELECT "Sequence","Time","InputAll","ErrorDescripe" FROM history`
+	rows, err := q.DB.Query(sqlStr)
+	if err != nil {
+		log.Println("Fail")
+		return 
+	}
+	defer rows.Close()
+	h := []history{}
+	//fmt.Printf("%+v",u)
+	for rows.Next() {
+		//var username string
+		if err := rows.Scan(&sequence, &time, &inputAll, &errorDescripe); err != nil {
+			log.Println(err)
+		}
+		his := history{
+			Sequence	 :  sequence,
+			Time		 :  time,
+			InputAll	 :  inputAll,
+			ErrorDescripe:  errorDescripe,
+		}
+		h = append(h, his)
+	}
+	if !rows.NextResultSet() {
+		log.Println(rows.Err())
+	}
+	output, _ := json.Marshal(&h)
+	fmt.Println(string(output))
+	json.NewEncoder(w).Encode(&h)
+	
+}*/
 
 //Calculate cal
 func Calculate(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +124,7 @@ func Calculate(w http.ResponseWriter, r *http.Request) {
 		outerror.InputAll = s
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
+		//w.WriteHeader()
 		json.NewEncoder(w).Encode(&outerror)
 		return
 	} //response
