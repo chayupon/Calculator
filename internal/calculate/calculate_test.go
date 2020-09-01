@@ -10,12 +10,14 @@ import (
 	//	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 )
-
+var a App 
 func Test_OutputError(t *testing.T) {
+	//var a App 
 	response := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/calculator", strings.NewReader(`{  "input1" :0.22, "input2"  :0,"operation" :"/"}`))
 
-	Calculate(response, request)
+
+	a.Calculate(response, request)
 
 	var outerr outputError
 
@@ -31,7 +33,7 @@ func Test_StructEror(t *testing.T) {
 	response := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/calculator", strings.NewReader(`{  "input1" :"2", "input2"  :2,"operation" :"+"}`))
 
-	Calculate(response, request)
+	a.Calculate(response, request)
 
 	var outerr outputError
 
@@ -47,7 +49,7 @@ func Test_Pass(t *testing.T) {
 	response := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/calculator", strings.NewReader(`{  "input1" :2, "input2"  :2,"operation" :"+"}`))
 
-	Calculate(response, request)
+	a.Calculate(response, request)
 
 	var showout Output
 
