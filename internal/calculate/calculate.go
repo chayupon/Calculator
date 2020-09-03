@@ -13,13 +13,16 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	
+
 )
 
 //App input to db
 type App struct {
 	Router *mux.Router
 	DB     *sql.DB
-}
+	DateJoined time.Time
+ }
 
 //Cal calculate
 type Cal struct {
@@ -41,11 +44,20 @@ type outputError struct {
 	InputAll         string `json:"inputall"`
 }
 
+//History in db
+type history struct {
+	Sequence      int    `json:"sequence"`
+	Time          string `json:"time"`
+	InputAll      string `json:"input_all"`
+	ErrorDescripe string `json:"error_descripe"`
+}
+
 //Initialize connect db
-func (a *App) Initialize(user, password, dbname string) {
+func (a *App) Initialize(dbHost, dbPort,user, password, dbname string) {
+
 	connectionString :=
-		fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", user, password, dbname)
-	fmt.Println("hello")
+		fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",dbHost, dbPort,user, password, dbname)
+	fmt.Println("Database Connect")
 	var err error
 	a.DB, err = sql.Open("postgres", connectionString)
 	if err != nil {
@@ -83,15 +95,15 @@ func (a *App) Calculate(w http.ResponseWriter, r *http.Request) {
 	var cal Cal
 	var out Output
 	var outerror outputError
-	//var history History
-	sqlStr := `INSERT INTO history( "time", input1, operate, input2, result, errordescripe) VALUES($1,$2,$3,$4,$5,$6)`
+	
+	sqlStr := `INSERT INTO history( time, input1, operate, input2, result, errordescripe) VALUES($1,$2,$3,$4,$5,$6)`
 
 	e := json.NewDecoder(r.Body).Decode(&cal)
 	if e != nil {
 
 		outerror.Errordescription = e.Error()
 		//outerror.Errordescription = err
-		fmt.Println(outerror.Errordescription)
+		fmt.Println("operateerror :",outerror.Errordescription)
 
 		s := fmt.Sprintf("%f %s %f = %f", cal.Input1, cal.Operation, cal.Input2, cal.Result)
 		fmt.Println("ResultAll :", s)
@@ -105,7 +117,7 @@ func (a *App) Calculate(w http.ResponseWriter, r *http.Request) {
 	result, err := operate.Add(cal.Input1, cal.Input2, cal.Operation)
 	fmt.Println("Result :", result, err)
 	currentime := time.Now()
-	out.Time = currentime.Format(time.RFC3339Nano)
+	out.Time = currentime.Format(time.RFC3339)
 	out.Result = result
 	if err != nil {
 
@@ -116,7 +128,7 @@ func (a *App) Calculate(w http.ResponseWriter, r *http.Request) {
 		outerror.InputAll = s
 
 	}
-	//save insert db
+	
 	_, err = a.DB.Exec(sqlStr, out.Time, cal.Input1, cal.Operation, cal.Input2, out.Result, outerror.Errordescription)
 	if err != nil {
 		fmt.Println(err)
@@ -132,28 +144,19 @@ func (a *App) Calculate(w http.ResponseWriter, r *http.Request) {
 
 }
 
-//History in db
-type history struct {
-	Sequence      int    `json:"sequence"`
-	Time          string `json:"time"`
-	InputAll      string `json:"input_all"`
-	ErrorDescripe string `json:"error_descripe"`
-}
-
 //Detail select db
 func (a *App) Detail(w http.ResponseWriter, r *http.Request) {
-
 	sqlStr := `SELECT  sequence, "time", input1, operate, input2, result, errordescripe FROM history`
 	rows, err := a.DB.Query(sqlStr)
 	if err != nil {
-		log.Println("Fail")
+		log.Println("Fail",err)
+
 		return
 	}
 	defer rows.Close()
 	h := []history{}
 	//fmt.Printf("%+v",u)
 	for rows.Next() {
-		//var username string
 		var sequence int
 		var time string
 		var input1 float64
@@ -170,7 +173,7 @@ func (a *App) Detail(w http.ResponseWriter, r *http.Request) {
 		}
 		s := fmt.Sprintf("%f %s %f = %f", input1, operate, input2, result)
 		//history.
-		//fmt.Println("inputall :", s)
+		log.Println("inputall :", s)
 		his := history{
 			Sequence:      sequence,
 			Time:          time,
@@ -179,9 +182,7 @@ func (a *App) Detail(w http.ResponseWriter, r *http.Request) {
 		}
 		h = append(h, his)
 	}
-	if !rows.NextResultSet() {
-		log.Println(rows.Err())
-	}
+	
 	output, _ := json.Marshal(&h)
 	fmt.Println(string(output))
 	respondWithJSON(w, http.StatusOK, h)

@@ -21,13 +21,11 @@ func Add(input1 float64, input2 float64, cons string) (float64, error) {
 			return result, nil
 		}
 		return 0, fmt.Errorf("error_divide_Zero")
-	}else if cons == "-"{
+	} else if cons == "-" {
 		result := input1 - input2
 		return result, nil
 	}
-	
-	return 0, fmt.Errorf("Invalid Operate")
 
-	
+	return 0, fmt.Errorf("Invalid Operate")
 
 }

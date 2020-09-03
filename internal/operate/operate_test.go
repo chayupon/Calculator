@@ -76,12 +76,12 @@ func Test_twenth_mul_five(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func Test_twenth_mul_zero(t *testing.T) {
+func Test_twenty_mul_zero(t *testing.T) {
 
 	//Add(input1,input2,condition)
 
 	result, err := Add(20, 0, "/")
 
 	assert.Equal(t, 0.00, result, "result 0")
-	assert.EqualError(t, err, "error")
+	assert.EqualError(t, err, "error_divide_Zero")
 }

@@ -1,0 +1,32 @@
+version: "3.7"
+
+networks:
+  shared-network:
+    driver: bridge
+    
+services:
+  api:
+    networks:
+      - shared-network
+    depends_on: 
+      - db
+    build:
+        context: .
+        dockerfile: Dockerfile
+    ports:
+      - "8081:8090"
+      
+  db:
+  # image: postgres:12.4-alpine
+    networks:
+    - shared-network
+    build:
+      context: .
+      dockerfile: calculate.dockerfile
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=tonkla727426
+      - POSTGRES_USER=postgres
+      - POSTGRES_MULTIPLE_DATABASES=calculator
+    ports:
+      - "5452:5432"
