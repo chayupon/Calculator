@@ -190,7 +190,7 @@ func Test_SelectErrorType(t *testing.T) {
 func Test_Count(t *testing.T) {
 
 	response := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/calculate/count", strings.NewReader(`{  "operation" :"-","count" :1}`))
+	request, _ := http.NewRequest("POST", "/calculate/addoperate", strings.NewReader(`{  "input1" :2, "input2"  :2,"operation" :"+"}`))
 	dbTest, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -199,18 +199,22 @@ func Test_Count(t *testing.T) {
 	sqlStr := `INSERT INTO history `
 	currentime := time.Now()
 	timeTest := currentime.Format(time.RFC3339)
-	mock.ExpectExec(sqlStr).WithArgs(timeTest, 0.00, "-", 0.00, 0.00, "").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(sqlStr).WithArgs(timeTest, 0.00, "+", 0.00, 0.00, "").WillReturnResult(sqlmock.NewResult(1, 1))
 	a.DB = dbTest
 
 	a.Calculate(response, request)
 
-	var countoperate CountOperate
+	var countrequest CountRequest
+	//var countoperate CountOperate
 
-	json.NewDecoder(response.Body).Decode(&countoperate)
-	fmt.Println("count :", countoperate.Count)
+	json.NewDecoder(response.Body).Decode(&countrequest)
+
+	// test
+	fmt.Println("Operate is :",countrequest.Operation)
+	//fmt.Println("result is :",countoperate.Count)
 	assert.Equal(t, 200, response.Code)
-	//assert.Equal(t, "-",countoperate.Operation,"operation : -")
-	assert.Equal(t, 1,countoperate.Count,1)
+	assert.Equalf(t, "+", countrequest.Operation, "+")
+
 
 }
 
