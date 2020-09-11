@@ -149,7 +149,7 @@ func (a *App) Calculate(w http.ResponseWriter, r *http.Request) {
 		s := fmt.Sprintf("%f %s %f = %f", cal.Input1, cal.Operation, cal.Input2, cal.Result)
 		fmt.Println("ResultAll :", s)
 		outerror.InputAll = s
-		//respondWithJSON(w, http.StatusBadRequest, outerror)
+		respondWithJSON(w, http.StatusBadRequest, outerror)
 		return
 	}
 	result, err := operate.Add(cal.Input1, cal.Input2, cal.Operation)
