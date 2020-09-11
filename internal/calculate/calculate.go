@@ -90,18 +90,50 @@ func (a *App) Initialize(dbHost, dbPort, user, password, dbname string) {
 func (a *App) Run(addr string) {
 	log.Fatal(http.ListenAndServe(addr, a.Router))
 }
+
 func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/calculate", a.Calculate).Methods("POST")
 	a.Router.HandleFunc("/calculate/request/operate", a.OperateRequest).Methods("POST")
 	a.Router.HandleFunc("/calculate/detail", a.Detail).Methods("GET")
 	a.Router.HandleFunc("/calculate/count/detail", a.CountOperateAll).Methods("GET")
 }
+
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
 }
+
+//CountOperateRequest count operate
+func CountOperateRequest(operateall []string) (int, int, int, int) {
+	countadd := 0
+	countdiff := 0
+	countmulti := 0
+	countdiv := 0
+
+	for _, operate := range operateall {
+		if operate == "+" {
+			countadd++
+		} else if operate == "-" {
+			countdiff++
+		} else if operate == "*" {
+			countmulti++
+		} else if operate == "/" {
+			countdiv++
+		}
+	}
+	return countadd, countdiff, countmulti, countdiv
+}
+
+/*
+func OutputError(outerror outputError, e error, cal Cal) {
+	outerror.Errordescription = e.Error()
+	fmt.Println("error :", outerror.Errordescription)
+	s := fmt.Sprintf("%f %s %f = %f", cal.Input1, cal.Operation, cal.Input2, cal.Result)
+	fmt.Println("ResultAll :", s)
+	outerror.InputAll = s
+}*/
 
 //Calculate Insert
 func (a *App) Calculate(w http.ResponseWriter, r *http.Request) {
@@ -111,18 +143,16 @@ func (a *App) Calculate(w http.ResponseWriter, r *http.Request) {
 	sqlStr := `INSERT INTO history( time, input1, operate, input2, result, errordescripe) VALUES($1,$2,$3,$4,$5,$6)`
 	e := json.NewDecoder(r.Body).Decode(&cal)
 	if e != nil {
+		//OutputError(outerror, e, cal)
 		outerror.Errordescription = e.Error()
-		//outerror.Errordescription = err
-		fmt.Println("operateerror :", outerror.Errordescription)
+		fmt.Println("error :", outerror.Errordescription)
 		s := fmt.Sprintf("%f %s %f = %f", cal.Input1, cal.Operation, cal.Input2, cal.Result)
 		fmt.Println("ResultAll :", s)
 		outerror.InputAll = s
-		respondWithJSON(w, http.StatusBadRequest, outerror)
+		//respondWithJSON(w, http.StatusBadRequest, outerror)
 		return
 	}
 	result, err := operate.Add(cal.Input1, cal.Input2, cal.Operation)
-	//cal.Count +=1
-	//fmt.Println("Count :", cal.Count)
 	fmt.Println("Result :", result, err)
 	currentime := time.Now()
 	out.Time = currentime.Format(time.RFC3339)
@@ -158,7 +188,7 @@ func (a *App) Detail(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 	h := []history{}
-	//fmt.Printf("%+v",u)
+
 	for rows.Next() {
 		var sequence int
 		var time string
@@ -198,9 +228,9 @@ func (a *App) CountOperateAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	//  resulthistory := []result{}
+
 	var operateall []string
-	//fmt.Printf("%+v",u)
+
 	for rows.Next() {
 		//  var count int
 		var sequence int
@@ -213,21 +243,7 @@ func (a *App) CountOperateAll(w http.ResponseWriter, r *http.Request) {
 		}
 		operateall = append(operateall, operate)
 	}
-	countadd := 0
-	countdiff := 0
-	countmulti := 0
-	countdiv := 0
-	for _, operate := range operateall {
-		if operate == "+" {
-			countadd++
-		} else if operate == "-" {
-			countdiff++
-		} else if operate == "*" {
-			countmulti++
-		} else if operate == "/" {
-			countdiv++
-		}
-	}
+	countadd, countdiff, countmulti, countdiv := CountOperateRequest(operateall)
 	countop := ResponseCount{
 		CountOperate: []CountOperate{
 			{
@@ -257,8 +273,6 @@ func (a *App) CountOperateAll(w http.ResponseWriter, r *http.Request) {
 // OperateRequest to count
 func (a *App) OperateRequest(w http.ResponseWriter, r *http.Request) {
 	var countOperateRQ CountRequest
-	//var outerror outputError
-	//var cal Cal
 	var out Output
 	var countOperate CountOperate
 	var counterror CountOperateError
@@ -272,7 +286,6 @@ func (a *App) OperateRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	count, err := count.CheckOperate(countOperateRQ.Operation)
 	fmt.Println("operation :", count, err)
-	//fmt.Println("operationcount :", countOperate.Count)
 	currentime := time.Now()
 	out.Time = currentime.Format(time.RFC3339)
 	if err != nil {
@@ -281,7 +294,7 @@ func (a *App) OperateRequest(w http.ResponseWriter, r *http.Request) {
 		respondWithJSON(w, http.StatusBadRequest, counterror)
 		return
 	}
-//select to show operate
+	//select to show operate
 	sqlStr := `SELECT sequence,operate FROM history`
 	var sequence int
 	rows, err := a.DB.Query(sqlStr)
@@ -291,13 +304,12 @@ func (a *App) OperateRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	//  resulthistory := []result{}
+
 	var operateall []string
-	//fmt.Printf("%+v",u)
+
 	for rows.Next() {
-		//  var count int
+
 		var operate string
-		//  var errordescripe string
 		if err := rows.Scan(&sequence, &operate); err != nil {
 			log.Println(err)
 			respondWithJSON(w, http.StatusBadRequest, err.Error())
@@ -306,23 +318,8 @@ func (a *App) OperateRequest(w http.ResponseWriter, r *http.Request) {
 		operateall = append(operateall, operate)
 	}
 
-	countadd := 0
-	countdiff := 0
-	countmulti := 0
-	countdiv := 0
-//for loop count operate
-	for _, operate := range operateall {
-		if operate == "+" {
-			countadd++
-		} else if operate == "-" {
-			countdiff++
-		} else if operate == "*" {
-			countmulti++
-		} else if operate == "/" {
-			countdiv++
-		}
-	}
-//show count operate
+	countadd, countdiff, countmulti, countdiv := CountOperateRequest(operateall)
+	//show count operate
 	if countOperateRQ.Operation == "+" {
 		countOperate = CountOperate{
 			Operation: "+",
