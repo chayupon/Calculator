@@ -42,6 +42,11 @@ type CountOperate struct {
 	Count     int    `json:"count"`
 }
 
+//CountOperateError error
+type CountOperateError struct {
+	Errordescription string `json:"errordescription"`
+}
+
 //CountRequest operation
 type CountRequest struct {
 	Operation string `json:"operation"`
@@ -87,9 +92,9 @@ func (a *App) Run(addr string) {
 }
 func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/calculate", a.Calculate).Methods("POST")
-	a.Router.HandleFunc("/calculate/addoperate", a.AddOperate).Methods("POST")
+	a.Router.HandleFunc("/calculate/request/operate", a.OperateRequest).Methods("POST")
 	a.Router.HandleFunc("/calculate/detail", a.Detail).Methods("GET")
-	a.Router.HandleFunc("/calculate/count/detail", a.CountDetail).Methods("GET")
+	a.Router.HandleFunc("/calculate/count/detail", a.CountOperateAll).Methods("GET")
 }
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
@@ -183,9 +188,9 @@ func (a *App) Detail(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, h)
 }
 
-//CountDetail count history
-func (a *App) CountDetail(w http.ResponseWriter, r *http.Request) {
-	sqlStr := `SELECT operate FROM history`
+//CountOperateAll count history
+func (a *App) CountOperateAll(w http.ResponseWriter, r *http.Request) {
+	sqlStr := `SELECT  sequence,operate FROM history`
 	rows, err := a.DB.Query(sqlStr)
 	if err != nil {
 		log.Println("Fail", err)
@@ -198,9 +203,10 @@ func (a *App) CountDetail(w http.ResponseWriter, r *http.Request) {
 	//fmt.Printf("%+v",u)
 	for rows.Next() {
 		//  var count int
+		var sequence int
 		var operate string
 		//  var errordescripe string
-		if err := rows.Scan(&operate); err != nil {
+		if err := rows.Scan(&sequence, &operate); err != nil {
 			log.Println(err)
 			respondWithJSON(w, http.StatusBadRequest, err.Error())
 			return
@@ -222,7 +228,7 @@ func (a *App) CountDetail(w http.ResponseWriter, r *http.Request) {
 			countdiv++
 		}
 	}
-	coutop := ResponseCount{
+	countop := ResponseCount{
 		CountOperate: []CountOperate{
 			{
 				Operation: "+",
@@ -243,47 +249,41 @@ func (a *App) CountDetail(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	fmt.Println("operateall", operateall)
-	output, _ := json.Marshal(&coutop)
+	output, _ := json.Marshal(&countop)
 	fmt.Println(string(output))
-	respondWithJSON(w, http.StatusOK, coutop)
+	respondWithJSON(w, http.StatusOK, countop)
 }
 
-//AddOperate to count
-func (a *App) AddOperate(w http.ResponseWriter, r *http.Request) {
+// OperateRequest to count
+func (a *App) OperateRequest(w http.ResponseWriter, r *http.Request) {
 	var countOperateRQ CountRequest
-	var outerror outputError
-	var cal Cal
+	//var outerror outputError
+	//var cal Cal
 	var out Output
-	//Insert
-	sqlStr := `INSERT INTO history( time, input1, operate, input2, result, errordescripe) VALUES($1,$2,$3,$4,$5,$6)`
-	//sqlStr := fmt.Sprintf(`INSERT INTO history(operate) VALUES(%s)`, countOperateRQ)
+	var countOperate CountOperate
+	var counterror CountOperateError
+
 	e := json.NewDecoder(r.Body).Decode(&countOperateRQ)
 	if e != nil {
-		outerror.Errordescription = e.Error()
-		respondWithJSON(w, http.StatusBadRequest, outerror)
-		fmt.Println("Incorrect")
+		counterror.Errordescription = e.Error()
+		fmt.Println("error :", counterror.Errordescription)
+		respondWithJSON(w, http.StatusBadRequest, counterror)
 		return
 	}
-	count, err := count.Count(countOperateRQ.Operation)
+	count, err := count.CheckOperate(countOperateRQ.Operation)
 	fmt.Println("operation :", count, err)
+	//fmt.Println("operationcount :", countOperate.Count)
 	currentime := time.Now()
 	out.Time = currentime.Format(time.RFC3339)
 	if err != nil {
-		outerror.Errordescription = err.Error()
-		fmt.Println("error :", outerror.Errordescription)
-	}
-	_, err = a.DB.Exec(sqlStr, out.Time, cal.Input1, countOperateRQ.Operation, cal.Input2, out.Result, outerror.Errordescription)
-	if err != nil {
-		fmt.Println(err)
-		respondWithJSON(w, http.StatusBadRequest, err)
+		counterror.Errordescription = err.Error()
+		fmt.Println("error :", counterror.Errordescription)
+		respondWithJSON(w, http.StatusBadRequest, counterror)
 		return
 	}
-	if outerror.Errordescription != "" {
-		respondWithJSON(w, http.StatusBadRequest, outerror)
-		fmt.Println("Incorrect")
-		return
-	}
-	sqlStr = `SELECT operate FROM history`
+//select to show operate
+	sqlStr := `SELECT sequence,operate FROM history`
+	var sequence int
 	rows, err := a.DB.Query(sqlStr)
 	if err != nil {
 		log.Println("Fail", err)
@@ -298,17 +298,19 @@ func (a *App) AddOperate(w http.ResponseWriter, r *http.Request) {
 		//  var count int
 		var operate string
 		//  var errordescripe string
-		if err := rows.Scan(&operate); err != nil {
+		if err := rows.Scan(&sequence, &operate); err != nil {
 			log.Println(err)
 			respondWithJSON(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		operateall = append(operateall, operate)
 	}
+
 	countadd := 0
 	countdiff := 0
 	countmulti := 0
 	countdiv := 0
+//for loop count operate
 	for _, operate := range operateall {
 		if operate == "+" {
 			countadd++
@@ -320,9 +322,7 @@ func (a *App) AddOperate(w http.ResponseWriter, r *http.Request) {
 			countdiv++
 		}
 	}
-	//countop :=
-	//fmt.Println("count1:",countadd,"count2:",countdiv,"count3:",countmulti,"count4:",countdiff)
-	var countOperate CountOperate
+//show count operate
 	if countOperateRQ.Operation == "+" {
 		countOperate = CountOperate{
 			Operation: "+",
@@ -345,6 +345,7 @@ func (a *App) AddOperate(w http.ResponseWriter, r *http.Request) {
 			Count:     countdiv,
 		}
 	}
+
 	fmt.Println("operateall", operateall)
 	output, _ := json.Marshal(&countOperate)
 	fmt.Println(string(output))

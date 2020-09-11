@@ -2,24 +2,20 @@ package count
 
 import "fmt"
 
-//Count operate
-func Count(cons string) (int, error) {
+//CheckOperate count
+func CheckOperate(cons string) (int, error) {
 	count := 0
 	if cons == "+" {
 
-		count++
 		return count, nil
 	} else if cons == "*" {
 
-		count++
 		return count, nil
 	} else if cons == "/" {
 
-		count++
 		return count, nil
 	} else if cons == "-" {
 
-		count++
 		return count, nil
 	}
 

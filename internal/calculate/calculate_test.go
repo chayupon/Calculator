@@ -20,24 +20,9 @@ import (
 
 var a App
 
-const (
-	tableCreationQuery = `CREATE TABLE IF NOT EXISTS history (
-		equence smallint NOT NULL DEFAULT nextval('history_sequence_seq'::regclass),
-    "time" timestamp with time zone NOT NULL,
-    input1 numeric(10,4) NOT NULL,
-    operate character varying(1) COLLATE pg_catalog."default" NOT NULL,
-    input2 numeric(10,4) NOT NULL,
-    result numeric(10,4) NOT NULL,
-    errordescripe character varying(50) COLLATE pg_catalog."default",
-    CONSTRAINT history_pkey PRIMARY KEY (sequence)
-	)`
-
-	add = `INSERT INTO history( time, input1, operate, input2, result, errordescripe) VALUES($1,$2,$3,$4,$5,$6)`
-	get = `SELECT  sequence, "time", input1, operate, input2, result, errordescripe FROM history`
-)
 
 func Test_OutputError(t *testing.T) {
-	//var a App
+	
 	response := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/calculator", strings.NewReader(`{  "input1" :0.22, "input2"  :0,"operation" :"/"}`))
 
@@ -49,7 +34,7 @@ func Test_OutputError(t *testing.T) {
 	sqlStr := `INSERT INTO history `
 	currentime := time.Now()
 	timeTest := currentime.Format(time.RFC3339)
-	//timeTest := currentime.Format("RFC1111119")
+	
 	a.DateJoined = currentime
 	mock.ExpectExec(sqlStr).WithArgs(timeTest, 4.00, "/", 0.00, 0.00, "error_divide_Zero").WillReturnResult(sqlmock.NewResult(1, 1))
 	a.DB = dbTest
@@ -58,14 +43,14 @@ func Test_OutputError(t *testing.T) {
 	var outerr outputError
 
 	json.NewDecoder(response.Body).Decode(&outerr)
-	// test
+	
 	assert.Equal(t, 400, response.Code)
-	//assert.Equal(t, "error_divide_Zero", outerr.Errordescription)
+
 
 }
 
 func Test_OperateError(t *testing.T) {
-	//var a App
+	
 	response := httptest.NewRecorder()
 	request, _ := http.NewRequest("POST", "/calculator", strings.NewReader(`{  "input1" :4.00, "input2"  :2,"operation" :"b"}`))
 
@@ -96,7 +81,7 @@ func Test_StructEror(t *testing.T) {
 	var outerr outputError
 
 	json.NewDecoder(response.Body).Decode(&outerr)
-	// test
+	
 	assert.Equal(t, 400, response.Code)
 	assert.Equal(t, "json: cannot unmarshal string into Go struct field Cal.input1 of type float64", outerr.Errordescription)
 	assert.Equal(t, "0.000000 + 2.000000 = 0.000000", outerr.InputAll)
@@ -123,8 +108,8 @@ func Test_Pass(t *testing.T) {
 
 	json.NewDecoder(response.Body).Decode(&showout)
 
-	// test
-	fmt.Println("result is :",showout.Result)
+	
+	fmt.Println("result is :", showout.Result)
 	assert.Equal(t, 200, response.Code)
 	assert.Equalf(t, 4.00, showout.Result, "result 4")
 
@@ -149,14 +134,11 @@ func Test_SelectDb(t *testing.T) {
 		WillReturnRows(rows)
 	a.Detail(response, request)
 
-	//var showout Output
-	//h := []history{}
-
-	//json.NewDecoder(response.Body).Decode(&h)
+	
 	expect := `[{"sequence": 1,"time": "2020-08-31T17:02:10.076232+07:00","input_all": "22.000000 + 3123.000000 = 0.000000","error_descripe": ""},{"sequence": 2,"time": "2020-08-31T17:04:32.483087+07:00","input_all": "22.000000 + 31.000000 = 0.000000","error_descripe": ""}]`
 	t.Log(response.Body.String())
 	assert.JSONEq(t, expect, response.Body.String())
-	//	assert.Equal(t, expect, response.Body.String())
+	
 	assert.Equal(t, 200, response.Code)
 }
 
@@ -173,7 +155,6 @@ func Test_SelectErrorType(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"sequence", "time", "input1", "operate", "input2", "result", " errordescripe"}). //RowError(1,fmt.Errorf("error"))
 																AddRow("a", "2020-08-31T17:02:10.076232+07:00", 22, "+", 3123.000000, 0.000000, "")
-		//AddRow(2, "2020-08-31T17:04:32.483087+07:00", 22.000000, "+", 31.000000, 0.000000, "")
 
 	mock.ExpectQuery("^SELECT (.+) FROM history").
 		WillReturnRows(rows)
@@ -181,16 +162,33 @@ func Test_SelectErrorType(t *testing.T) {
 
 	expect := "\"sql: Scan error on column index 0, name \\\"sequence\\\": converting driver.Value type string (\\\"a\\\") to a int: invalid syntax\""
 	t.Log(response.Body.String())
-	//assert.JSONEq(t, expect, response.Body.String())
+
 	assert.Equal(t, expect, response.Body.String())
 	assert.Equal(t, 400, response.Code)
 
 }
 
-func Test_Count(t *testing.T) {
+func Test_StructOperateEror(t *testing.T) {
 
 	response := httptest.NewRecorder()
-	request, _ := http.NewRequest("POST", "/calculate/addoperate", strings.NewReader(`{  "input1" :2, "input2"  :2,"operation" :"+"}`))
+	request, _ := http.NewRequest("POST", "/calculate/OperateRequest", strings.NewReader(`{ operation" :"+"}`))
+
+	a.OperateRequest(response, request)
+
+	var counterror CountOperateError
+
+	json.NewDecoder(response.Body).Decode(&counterror)
+
+	fmt.Println("error :", counterror)
+	assert.Equal(t, 400, response.Code)
+	assert.Equal(t, "invalid character 'o' looking for beginning of object key string", counterror.Errordescription)
+
+}
+func Test_InvalidOperate(t *testing.T) {
+
+	response := httptest.NewRecorder()
+	request, _ := http.NewRequest("POST", "/calculate/OperateRequest", strings.NewReader(`{"operation" :"b"}`))
+
 	dbTest, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -199,29 +197,18 @@ func Test_Count(t *testing.T) {
 	sqlStr := `INSERT INTO history `
 	currentime := time.Now()
 	timeTest := currentime.Format(time.RFC3339)
-	mock.ExpectExec(sqlStr).WithArgs(timeTest, 0.00, "+", 0.00, 0.00, "").WillReturnResult(sqlmock.NewResult(1, 1))
+	//timeTest := currentime.Format("RFC1111119")
+	a.DateJoined = currentime
+	mock.ExpectExec(sqlStr).WithArgs(timeTest, 0.00, "b", 0.00, 0.00, "Invalid Operate").WillReturnResult(sqlmock.NewResult(1, 1))
 	a.DB = dbTest
-
-	a.Calculate(response, request)
-
-	var countrequest CountRequest
-	//var countoperate CountOperate
-
-	json.NewDecoder(response.Body).Decode(&countrequest)
-
-	// test
-	fmt.Println("Operate is :",countrequest.Operation)
-	//fmt.Println("result is :",countoperate.Count)
-	assert.Equal(t, 200, response.Code)
-	assert.Equalf(t, "+", countrequest.Operation, "+")
-
+	a.OperateRequest(response, request)
+	assert.Equal(t, 400, response.Code)
 
 }
 
-/*
-func Test_CountHistory(t *testing.T) {
+func Test_OperateRequest_Add(t *testing.T) {
 	response := httptest.NewRecorder()
-	request, _ := http.NewRequest("GET", "/calculate/count/detail", strings.NewReader(`{  "input1" :2, "input2"  :2,"operation" :"+"}`))
+	request, _ := http.NewRequest("GET", "/calculate/OperateRequest", strings.NewReader(`{  "operation" :"+"}`))
 
 	dbTest, mock, err := sqlmock.New()
 	a.DB = dbTest
@@ -230,22 +217,249 @@ func Test_CountHistory(t *testing.T) {
 	}
 	defer dbTest.Close()
 
-	rows := sqlmock.NewRows([]string{"sequence", "time", "input1", "operate", "input2", "result", " errordescripe"}).
-		AddRow(78, "2020-09-09 02:08:36+00", 0.000000, "*", 0.000000, 0.000000, "").
-		AddRow(79, "2020-09-09 02:08:36+00", 0.000000, "*", 0.000000, 0.000000, "")
+	rows := sqlmock.NewRows([]string{"sequence", "operate"}).
+		AddRow(1, "+").
+		AddRow(2, "+")
 
 	mock.ExpectQuery("^SELECT (.+) FROM history").
 		WillReturnRows(rows)
-	a.Detail(response, request)
+	a.OperateRequest(response, request)
 
-	//var showout Output
-	//h := []history{}
-
-	//json.NewDecoder(response.Body).Decode(&h)
-	expect := `{"result": [{"operation": "+","count": 0},{"operation": "-","count": 0},{"operation": "*","count": 2},{"operation": "/","count": 0}]}`
+	expect := `{"operation": "+","count": 2}`
 	t.Log(response.Body.String())
 	assert.JSONEq(t, expect, response.Body.String())
-	//	assert.Equal(t, expect, response.Body.String())
+
 	assert.Equal(t, 200, response.Code)
 }
-*/
+
+func Test_OperateRequest_Diff(t *testing.T) {
+	response := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/calculate/OperateRequest", strings.NewReader(`{  "operation" :"-"}`))
+
+	dbTest, mock, err := sqlmock.New()
+	a.DB = dbTest
+	if err != nil {
+		log.Print(err)
+	}
+	defer dbTest.Close()
+
+	rows := sqlmock.NewRows([]string{"sequence", "operate"}).
+		AddRow(1, "-").
+		AddRow(2, "-")
+
+	mock.ExpectQuery("^SELECT (.+) FROM history").
+		WillReturnRows(rows)
+	a.OperateRequest(response, request)
+
+	expect := `{"operation": "-","count": 2}`
+	t.Log(response.Body.String())
+	assert.JSONEq(t, expect, response.Body.String())
+	assert.Equal(t, 200, response.Code)
+}
+
+func Test_OperateRequest_Multi(t *testing.T) {
+	response := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/calculate/OperateRequest", strings.NewReader(`{  "operation" :"*"}`))
+
+	dbTest, mock, err := sqlmock.New()
+	a.DB = dbTest
+	if err != nil {
+		log.Print(err)
+	}
+	defer dbTest.Close()
+
+	rows := sqlmock.NewRows([]string{"sequence", "operate"}).
+		AddRow(1, "*")
+
+	mock.ExpectQuery("^SELECT (.+) FROM history").
+		WillReturnRows(rows)
+	a.OperateRequest(response, request)
+
+	
+	expect := `{"operation": "*","count": 1}`
+	t.Log(response.Body.String())
+	assert.JSONEq(t, expect, response.Body.String())
+	
+	assert.Equal(t, 200, response.Code)
+}
+
+func Test_OperateRequest_Div(t *testing.T) {
+	response := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/calculate/OperateRequest", strings.NewReader(`{  "operation" :"/"}`))
+
+	dbTest, mock, err := sqlmock.New()
+	a.DB = dbTest
+	if err != nil {
+		log.Print(err)
+	}
+	defer dbTest.Close()
+
+	rows := sqlmock.NewRows([]string{"sequence", "operate"}).
+		AddRow(1, "/")
+
+	mock.ExpectQuery("^SELECT (.+) FROM history").
+		WillReturnRows(rows)
+	a.OperateRequest(response, request)
+
+	
+	expect := `{"operation": "/","count": 1}`
+	t.Log(response.Body.String())
+	assert.JSONEq(t, expect, response.Body.String())
+	
+	assert.Equal(t, 200, response.Code)
+}
+
+func Test_OperateRequest_Error(t *testing.T) {
+	response := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/calculate/OperateRequest", strings.NewReader(`{  "operation" :"/"}`))
+
+	dbTest, mock, err := sqlmock.New()
+	a.DB = dbTest
+	if err != nil {
+		log.Print(err)
+	}
+	defer dbTest.Close()
+
+	rows := sqlmock.NewRows([]string{"sequence", "operate"}).
+		AddRow("a", "/")
+
+	mock.ExpectQuery("^SELECT (.+) FROM history").
+		WillReturnRows(rows)
+	a.OperateRequest(response, request)
+
+	
+	expect := "\"sql: Scan error on column index 0, name \\\"sequence\\\": converting driver.Value type string (\\\"a\\\") to a int: invalid syntax\""
+	t.Log(response.Body.String())
+	assert.JSONEq(t, expect, response.Body.String())
+	
+	assert.Equal(t, 400, response.Code)
+}
+
+func Test_CountOperateAll_Add(t *testing.T) {
+	response := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/calculate/count/detail", strings.NewReader(`{"operation" :"+"}`))
+
+	dbTest, mock, err := sqlmock.New()
+	a.DB = dbTest
+	if err != nil {
+		log.Print(err)
+	}
+	defer dbTest.Close()
+
+	rows := sqlmock.NewRows([]string{"sequence", "operate"}).
+		AddRow(1, "+")
+
+	mock.ExpectQuery("^SELECT (.+) FROM history").
+		WillReturnRows(rows)
+	a.CountOperateAll(response, request)
+
+	expect := "{\"result\":[{\"operation\":\"+\",\"count\":1},{\"operation\":\"-\",\"count\":0},{\"operation\":\"*\",\"count\":0},{\"operation\":\"/\",\"count\":0}]}"
+	t.Log(response.Body.String())
+	assert.Equal(t, expect, response.Body.String())
+	assert.Equal(t, 200, response.Code)
+
+}
+
+func Test_CountOperateAll_Diff(t *testing.T) {
+	response := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/calculate/count/detail", strings.NewReader(`{"operation" :"-"}`))
+
+	dbTest, mock, err := sqlmock.New()
+	a.DB = dbTest
+	if err != nil {
+		log.Print(err)
+	}
+	defer dbTest.Close()
+
+	rows := sqlmock.NewRows([]string{"sequence", "operate"}).
+		AddRow(1, "-")
+
+	mock.ExpectQuery("^SELECT (.+) FROM history").
+		WillReturnRows(rows)
+	a.CountOperateAll(response, request)
+
+	expect := "{\"result\":[{\"operation\":\"+\",\"count\":0},{\"operation\":\"-\",\"count\":1},{\"operation\":\"*\",\"count\":0},{\"operation\":\"/\",\"count\":0}]}"
+	t.Log(response.Body.String())
+
+	assert.Equal(t, expect, response.Body.String())
+	assert.Equal(t, 200, response.Code)
+
+}
+
+func Test_CountOperateAll_Multi(t *testing.T) {
+	response := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/calculate/count/detail", strings.NewReader(`{"operation" :"*"}`))
+
+	dbTest, mock, err := sqlmock.New()
+	a.DB = dbTest
+	if err != nil {
+		log.Print(err)
+	}
+	defer dbTest.Close()
+
+	rows := sqlmock.NewRows([]string{"sequence", "operate"}).
+		AddRow(1, "*")
+
+	mock.ExpectQuery("^SELECT (.+) FROM history").
+		WillReturnRows(rows)
+	a.CountOperateAll(response, request)
+
+	expect := "{\"result\":[{\"operation\":\"+\",\"count\":0},{\"operation\":\"-\",\"count\":0},{\"operation\":\"*\",\"count\":1},{\"operation\":\"/\",\"count\":0}]}"
+	t.Log(response.Body.String())
+
+	assert.Equal(t, expect, response.Body.String())
+	assert.Equal(t, 200, response.Code)
+
+}
+
+func Test_CountOperateAll_Div(t *testing.T) {
+	response := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/calculate/count/detail", strings.NewReader(`{"operation" :"/"}`))
+
+	dbTest, mock, err := sqlmock.New()
+	a.DB = dbTest
+	if err != nil {
+		log.Print(err)
+	}
+	defer dbTest.Close()
+
+	rows := sqlmock.NewRows([]string{"sequence", "operate"}). //RowError(1,fmt.Errorf("error"))
+									AddRow(1, "/")
+
+	mock.ExpectQuery("^SELECT (.+) FROM history").
+		WillReturnRows(rows)
+	a.CountOperateAll(response, request)
+
+	expect := "{\"result\":[{\"operation\":\"+\",\"count\":0},{\"operation\":\"-\",\"count\":0},{\"operation\":\"*\",\"count\":0},{\"operation\":\"/\",\"count\":1}]}"
+	t.Log(response.Body.String())
+
+	assert.Equal(t, expect, response.Body.String())
+	assert.Equal(t, 200, response.Code)
+
+}
+
+func Test_CountOperateAll_Error(t *testing.T) {
+	response := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/calculate/count/detail", strings.NewReader(`{"operation" :1}`))
+
+	dbTest, mock, err := sqlmock.New()
+	a.DB = dbTest
+	if err != nil {
+		log.Print(err)
+	}
+	defer dbTest.Close()
+
+	rows := sqlmock.NewRows([]string{"sequence", "operate"}).
+		AddRow("a", "+")
+
+	mock.ExpectQuery("^SELECT (.+) FROM history").
+		WillReturnRows(rows)
+	a.CountOperateAll(response, request)
+
+	expect := "\"sql: Scan error on column index 0, name \\\"sequence\\\": converting driver.Value type string (\\\"a\\\") to a int: invalid syntax\""
+	t.Log(response.Body.String())
+
+	assert.Equal(t, expect, response.Body.String())
+	assert.Equal(t, 400, response.Code)
+
+}
