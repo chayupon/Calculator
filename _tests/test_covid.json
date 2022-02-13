@@ -1,0 +1,82 @@
+{
+	"info": {
+		"_postman_id": "29d6d636-b9d7-4c2e-bf3d-12f1c1338d06",
+		"name": "_test.pg",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "test_Add",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"",
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"age\" :20,\n    \"subprovince\" :\"m\",\n    \"province\" :\"Bangkok\"\n    \n}"
+				},
+				"url": {
+					"raw": "http://localhost:8081/inputdata",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"inputdata"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "test_CountHistory",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"",
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8081/inputdata/count/detail",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8081",
+					"path": [
+						"inputdata",
+						"count",
+						"detail"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

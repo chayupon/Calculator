@@ -6,11 +6,11 @@ CREATE TABLE public.history
 (
     sequence smallint NOT NULL DEFAULT nextval('history_sequence_seq'::regclass),
     "time" timestamp with time zone NOT NULL,
-    input1 numeric(10,4) NOT NULL,
-    operate character varying(1) COLLATE pg_catalog."default" NOT NULL,
-    input2 numeric(10,4) NOT NULL,
-    result numeric(10,4) NOT NULL,
-    errordescripe character varying(50) COLLATE pg_catalog."default",
+    age numeric(10,0) ,
+    -- operate character varying(1) COLLATE pg_catalog."default" NOT NULL,
+    subprovince character varying(2000) COLLATE pg_catalog."default" ,
+    -- result numeric(10,4) NOT NULL,
+    province character varying(2000) COLLATE pg_catalog."default" ,
     CONSTRAINT history_pkey PRIMARY KEY (sequence)
 );
 
